@@ -1,74 +1,43 @@
-var str = window.location.href;
-var url = new URL(str);
-var idProduct = url.searchParams.get("id");
-console.log(idProduct);
-let article = "";
-
-const colorPicked = document. querySelector("#colors");
-const quantityPicked = document.querySelector("#quantity");
-// recuperer tous  les produits de l'api 
-
-async function getProduct(idProduct) {
-	try {
-		const response = await fetch(
-			"http://localhost:3000/api/products/" + idProduct
-		);
-		if (response.ok) {
-			const data = await response.json();
-			return data;
-		} else {
-			throw new Error("Échec du chargement de l'API");
-		}
-	} catch (error) {
-		console.log(error.message);
-	}
-}
-// filtrer les produits de l'api pour recuperer juste les produits qui sont dans localStorage (tous les champs de produit prix inclus)
-
-async function singleProductPrice(dataId, dataColor, productPrice) {
-
-	// Récupération des produits du localStorage
-	let produitLocalStorage = JSON.parse(localStorage.getItem("#cart__items"));
-	// variable price crée et initialisée à 0
-	let price = 0;
-	// // Appel de la fonction getProduct pour récupérer les infos de l'API (le prix)
-	const article = await getProduct(dataId);
-	// Boucle for pour parcourir tous les produits présents dans le localStorage
-	for (produit in produitLocalStorage) {
-		// console.log(article);
-
-		// Si le panier / localStorage contient déjà 1 article de même id et même couleur
-		if (
-			produitLocalStorage[produit].idProduit == dataId &&
-			produitLocalStorage[produit].couleurProduit == dataColor
-		) {
-			// Variable price est remplacée par un nouveau prix en fonction de sa quantité du produit concerné dans le localStorage
-			price += parseInt(
-				article.price * produitLocalStorage[produit].quantiteProduit
-			);
-			// Récupération du prix et le contenu textuel est changé par la valeur du variable price
-			productPrice.textContent = price + " €";
-		}
-    }
-	getTotals();
-}
-
-singleProductPrice();
-
-
-// pour la quantité et la couleur tu dois la chercher dans localStorage a chaque fois
-var getColor = localStorage.getItem("couleurProduit");
-var getQuantity = localStorage.getItem("quantiteProduit");
-// les produits fitrer que tu va afficher dans le panier les produits
-
-
 //Initialisation du local storage
 let produitLocalStorage = JSON.parse(localStorage.getItem("produit"));
-console.table(produitLocalStorage);
 const positionEmptyCart = document.querySelector("#cart__items");
+let productListFiltred = [];
 
+// recuperer tt les produits avec fetch 
+// Filtrer la liste des produits pour garder juste les produits qu'on a sur le localstorage
+function getProducts(){
+    fetch ("http://localhost:3000/api/products/")
+    .then(function (res) {
+       if (res.ok) {
+         return res.json();
+       }
+    })
+    .then( function (listProduct ) {
+    
+      let list = listProduct;
+      if(produitLocalStorage && produitLocalStorage.length){
+       let productBasket = produitLocalStorage.map(produit => produit.idProduit) ;
+       
+       
+     
+       productListFiltred = list.filter(el =>  productBasket.includes(el._id));
+           getCart(productListFiltred);
+           modifyQtt();
+           deleteProduct();
+           getTotals()
+      }
+      
+         
+    })
+    
+    .catch (function(err){
+       console.log("api error",err);
+    })
+    }
+    
+getProducts();
 // Si le panier est vide
-function getCart(){
+function getCart(productList){
     if (produitLocalStorage === null || produitLocalStorage == 0) {
         const emptyCart = `<p>Votre panier est vide</p>`;
         positionEmptyCart.innerHTML = emptyCart;
@@ -115,7 +84,8 @@ function getCart(){
         // Insertion du prix
         let productPrice = document.createElement("p");
         productItemContentTitlePrice.appendChild(productPrice);
-        productPrice.innerHTML = produitLocalStorage[produit].prixProduit + " €";
+        const currentProduct = productList.find(p => p._id === produitLocalStorage[produit].idProduit);
+        productPrice.innerHTML = currentProduct.price + " €";
     
         // Insertion de l'élément "div"
         let productItemContentSettings = document.createElement("div");
@@ -153,8 +123,8 @@ function getCart(){
         productSupprimer.className = "deleteItem";
         productSupprimer.innerHTML = "Supprimer";
     }
-    }}
-    getCart();
+    }
+}
     
     function getTotals(){
     
@@ -169,20 +139,17 @@ function getCart(){
     
         let productTotalQuantity = document.getElementById('totalQuantity');
         productTotalQuantity.innerHTML = totalQtt;
-        console.log(totalQtt);
     
         // Récupération du prix total
         totalPrice = 0;
     
         for (var i = 0; i < myLength; ++i) {
-            totalPrice += (elemsQtt[i].valueAsNumber * produitLocalStorage[i].prixProduit);
+            totalPrice += (elemsQtt[i].valueAsNumber * productListFiltred[i].price);
         }
     
         let productTotalPrice = document.getElementById('totalPrice');
         productTotalPrice.innerHTML = totalPrice;
-        console.log(totalPrice);
     }
-    getTotals();
     
     // Modification d'une quantité de produit
     function modifyQtt() {
@@ -276,7 +243,7 @@ function getCart(){
             if (charRegExp.test(inputFirstName.value)) {
                 firstNameErrorMsg.innerHTML = '';
             } else {
-                firstNameErrorMsg.innerHTML = 'Veuillez renseigner ce champ.';
+                firstNameErrorMsg.innerHTML = 'Veuillez renseigner ce champ. ex : Julie';
             }
         };
     
@@ -287,7 +254,7 @@ function getCart(){
             if (charRegExp.test(inputLastName.value)) {
                 lastNameErrorMsg.innerHTML = '';
             } else {
-                lastNameErrorMsg.innerHTML = 'Veuillez renseigner ce champ.';
+                lastNameErrorMsg.innerHTML = 'Veuillez renseigner ce champ. ex : Dupont';
             }
         };
     
@@ -298,7 +265,7 @@ function getCart(){
             if (addressRegExp.test(inputAddress.value)) {
                 addressErrorMsg.innerHTML = '';
             } else {
-                addressErrorMsg.innerHTML = 'Veuillez renseigner ce champ.';
+                addressErrorMsg.innerHTML = 'Veuillez renseigner ce champ. ex : 20 rue de la Gloire';
             }
         };
     
@@ -309,7 +276,7 @@ function getCart(){
             if (charRegExp.test(inputCity.value)) {
                 cityErrorMsg.innerHTML = '';
             } else {
-                cityErrorMsg.innerHTML = 'Veuillez renseigner ce champ.';
+                cityErrorMsg.innerHTML = 'Veuillez renseigner ce champ. ex : Toulouse';
             }
         };
     
@@ -320,7 +287,7 @@ function getCart(){
             if (emailRegExp.test(inputEmail.value)) {
                 emailErrorMsg.innerHTML = '';
             } else {
-                emailErrorMsg.innerHTML = 'Veuillez renseigner votre email.';
+                emailErrorMsg.innerHTML = 'Email non valide. ex : julie.dupont@gmail.com';
             }
         };
         }
@@ -383,5 +350,3 @@ function getCart(){
             })
     }
     postForm();
-
-    
